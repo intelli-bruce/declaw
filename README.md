@@ -65,19 +65,34 @@ $ npx declaw --apply
    Backup: ~/.declaw/backups/2026-04-09-0945/
 ```
 
-## 📦 What It Does (3영역)
+## 📦 What It Does (공식 Claude Code 계층 기준)
+
+`declaw`는 OpenClaw 파일을 **Claude Code 공식 문서에 맞는 올바른 위치**로 배치합니다. Auto memory는 Claude가 자동 작성하는 공간이므로, 사용자가 편집한 파일들은 `CLAUDE.md` / `rules` / `hooks`로 분산됩니다.
+
+### 5가지 Destination 카테고리
+
+| 카테고리 | Claude Code 위치 | 예시 |
+|---|---|---|
+| **user-claudemd** | `~/.claude/CLAUDE.md` | `IDENTITY.md`, `USER.md`, `SOUL.md` 통합 |
+| **project-claudemd** | `./CLAUDE.md` (cwd 기준) | `AGENTS.md` |
+| **user-rules** | `~/.claude/rules/*.md` | `TOOLS.md` (path-scoped 가능) |
+| **user-hook** | `~/.claude/hooks/*.sh` + `settings.json` | `HEARTBEAT.md` → hook 변환 |
+| **auto-memory** | `~/.claude/projects/<proj>/memory/` | `MEMORY.md` (병합) + 일일/주제 메모리 |
+
+### 3영역 스코프
 
 | 영역 | Source | Target |
 |---|---|---|
-| **Memory** | `~/.openclaw/workspace/*.md` + `memory/` | `~/.claude/projects/.../memory/` |
-| **MCP** | `~/.openclaw/workspace/config/mcporter.json` | `~/.claude.json` (via `claude mcp add`) |
+| **Memory & Instructions** | `~/.openclaw/workspace/*.md` + `memory/` | `CLAUDE.md` / `rules` / `hooks` / `auto-memory` (5 destinations) |
+| **MCP** | `~/.openclaw/workspace/config/mcporter.json` | `claude mcp add --scope user` (공식 CLI) |
 | **Skills** | `~/.openclaw/workspace/skills/*` | `~/.claude/skills/*` |
 
 각 영역마다:
 - ✅ 자동 감지 (하드코딩 없음)
-- ✅ Frontmatter 자동 생성/검증
-- ✅ 충돌 감지 + skip/overwrite/backup/rename 선택
+- ✅ 공식 frontmatter 스펙 검증 (Skills)
+- ✅ 충돌 감지 + skip/append/merge/convert/rename 선택
 - ✅ 백업 + rollback 지원
+- ✅ Dry-run 기본 (실제 적용은 `--apply`)
 
 ## 🎭 Who It's For
 

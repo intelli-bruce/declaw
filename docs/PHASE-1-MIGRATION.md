@@ -39,35 +39,53 @@
 
 ## 📐 Scope — 무엇을 마이그레이션하는가
 
-### 1. **Memory Migration**
+### 1. **Memory & Instructions Migration**
+
+**핵심 원칙** (Claude Code 공식 문서 기반):
+- Auto memory(`~/.claude/projects/<proj>/memory/`)는 **Claude가 자동 작성**하는 공간
+- 사용자가 편집한 지시사항은 **CLAUDE.md / rules / hooks**로 분산
+- `MEMORY.md`는 공식 auto memory 인덱스 — **이름 보존, 병합**
 
 **Source**: `~/.openclaw/workspace/*.md` + `~/.openclaw/workspace/memory/`
-- `AGENTS.md`, `IDENTITY.md`, `TOOLS.md`, `MEMORY.md`, `HEARTBEAT.md`, `SOUL.md`, `USER.md`
-- `memory/YYYY-MM-DD-*.md` (일일 로그)
-- `memory/*.md` (주제별 파일)
 
-**Target**: `~/.claude/projects/<project>/memory/`
-- Claude Code 공식 auto memory 경로
-- `MEMORY.md` 인덱스 자동 갱신
-- 각 파일에 frontmatter 자동 추가 (type, description)
+**5가지 Destination 카테고리** (각기 다른 메커니즘):
 
-**변환 규칙**:
-| OpenClaw 파일 | → | Claude Code 경로 | 메모리 타입 |
+| 카테고리 | Claude Code 위치 | 의미 |
+|---|---|---|
+| `user-claudemd` | `~/.claude/CLAUDE.md` | 모든 프로젝트 공유 사용자 지시사항 |
+| `project-claudemd` | `./CLAUDE.md` (cwd 기준) | 특정 프로젝트 지시사항 |
+| `user-rules` | `~/.claude/rules/*.md` | 사용자 레벨 규칙 (path-scoped 가능) |
+| `user-hook` | `~/.claude/hooks/*.sh` + `settings.json` | 자동화 (SessionStart, PostToolUse 등) |
+| `auto-memory` | `~/.claude/projects/<proj>/memory/` | Claude 자동 작성 메모리 + 상태 로그 |
+
+**OpenClaw 파일 매핑**:
+
+| OpenClaw 파일 | Destination | 메커니즘 | 이유 |
 |---|---|---|---|
-| `IDENTITY.md` | → | `user_identity.md` | `user` |
-| `USER.md` | → | `user_profile.md` | `user` |
-| `AGENTS.md` | → | `reference_agents.md` | `reference` |
-| `TOOLS.md` | → | `reference_tools.md` | `reference` |
-| `HEARTBEAT.md` | → | `reference_heartbeat.md` | `reference` |
-| `SOUL.md` | → | `reference_soul.md` | `reference` |
-| `MEMORY.md` (지표/상태) | → | `project_active_state.md` | `project` |
-| `memory/YYYY-MM-DD-*.md` | → | `memory/daily/YYYY-MM-DD-*.md` | 그대로 |
-| `memory/<topic>.md` | → | `memory/<topic>.md` | 그대로 |
+| `IDENTITY.md` | `~/.claude/CLAUDE.md` | append (섹션 `## Identity`) | 정체성/페르소나는 user instructions |
+| `USER.md` | `~/.claude/CLAUDE.md` | append (섹션 `## User Profile`) | 사용자 프로필도 user instructions |
+| `SOUL.md` | `~/.claude/CLAUDE.md` | append (섹션 `## Mission & Values`) | 미션/가치 = user instructions |
+| `AGENTS.md` | `./CLAUDE.md` (cwd) | append or new | 프로젝트별 에이전트 지침은 project scope |
+| `TOOLS.md` | `~/.claude/rules/tools.md` | new file | 도구 사용 규칙 — path-scoped 활용 가능 |
+| `HEARTBEAT.md` | `~/.claude/hooks/heartbeat.sh` + `settings.json` | **hook 변환** | 정기 체크는 파일이 아닌 자동화 |
+| `MEMORY.md` | `~/.claude/projects/<proj>/memory/MEMORY.md` | **merge** (이름 보존) | 공식 auto memory 인덱스 |
+| `memory/YYYY-MM-DD-*.md` | `~/.claude/projects/<proj>/memory/*.md` | copy (flat) | 일일 로그 — auto memory에 플랫으로 |
+| `memory/<topic>.md` | `~/.claude/projects/<proj>/memory/<topic>.md` | copy | 주제별 — auto memory에 플랫으로 |
+
+**Status 타입**:
+- `NEW`: 새 파일 생성 (대상 없음)
+- `APPEND`: 기존 CLAUDE.md에 섹션 추가
+- `MERGE`: 기존 MEMORY.md와 병합 (기존 내용 백업)
+- `CONVERT`: 파일 내용을 hook 스크립트로 변환
+- `NEEDS-CWD`: 프로젝트 경로 필요 (사용자 지정 또는 자동 감지)
+- `CONFLICT`: 이름 충돌 — skip/overwrite/rename 선택
 
 **특이 처리**:
-- TTL 코멘트 (`[stable]`, `[active]`, `[volatile]`)는 **그대로 보존** (Claude Code가 무시해도 복원 가능)
-- 에이전트 이름 (`Black` 등)은 `IDENTITY.md` 내용에서 자동 추출 → frontmatter에 기록
-- 중복 파일명은 suffix 자동 추가 (`_openclaw`)
+- **TTL 코멘트** (`[stable]`, `[active]`, `[volatile]`): 원본 유지. Claude Code는 무시하지만 사용자는 참고 가능
+- **에이전트 이름** (`Black` 등): IDENTITY.md 본문에서 자동 추출 → `## Identity` 섹션 제목으로
+- **서브디렉토리 금지**: `memory/daily/`, `memory/topics/` 같은 구조는 공식 문서에 없음. 전부 플랫으로
+- **Frontmatter 추가 안 함**: 공식 auto memory 스펙상 frontmatter 불필요 (순수 Markdown)
+- **MEMORY.md 충돌 처리**: 기존 MEMORY.md 있으면 `~/.declaw/backups/MEMORY.md.bak` 백업 후 병합
 
 ### 2. **MCP Migration**
 
@@ -453,6 +471,7 @@ Phase 3은 장기 Memory Service 비전입니다 (별도 로드맵).
 
 ## 📝 변경 이력
 
-| 날짜 | 변경 |
-|---|---|
-| 2026-04-09 | 초안 작성 (v0.1) — 이름 `declaw` 확정, `declaw.sh` 도메인 가용 확인, 14일 플랜 정의 |
+| 날짜 | 버전 | 변경 |
+|---|---|---|
+| 2026-04-09 | v0.2 | **매핑 규칙 전면 수정** — 공식 문서 기반 재검토 후 auto memory 오용 교정. IDENTITY/USER/SOUL → CLAUDE.md, AGENTS → 프로젝트 CLAUDE.md, TOOLS → rules/, HEARTBEAT → hook 변환, MEMORY.md 이름 보존. 서브디렉토리 제거, frontmatter 자동 추가 취소. |
+| 2026-04-09 | v0.1 | 초안 작성 — 이름 `declaw` 확정, `declaw.sh` 도메인 가용 확인, 14일 플랜 정의 |
