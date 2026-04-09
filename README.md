@@ -5,7 +5,12 @@
 `declaw`는 OpenClaw의 메모리·MCP 서버·Skills를 Claude Code로 이식해주는 **단방향 마이그레이션 CLI**입니다. 한 번 실행하면 끝. `oh-my-zsh` 스타일로 `npx` 한 줄 설치.
 
 ```bash
-npx declaw
+# Install as Claude Code skill (recommended)
+git clone https://github.com/intelli-bruce/declaw.git
+ln -sf "$(pwd)/declaw/skill" ~/.claude/skills/declaw
+
+# Then in Claude Code, just say:
+# "OpenClaw 스캔해봐" or "declaw scan"
 ```
 
 ---
@@ -162,13 +167,40 @@ Phase 3 (W13+)
 - 상표 안전 (일반명사)
 - `.sh` TLD와 완벽한 조합 (`declaw.sh` = CLI 느낌)
 
-## 🎯 다음 액션 (Day 0)
+## 🎯 Quick Start
 
-1. [ ] `declaw.sh` 도메인 구매 (~$60/년)
-2. [ ] `github.com/declaw` org 생성 (또는 개인 계정)
-3. [ ] npm 계정 publisher 설정
-4. [ ] GitHub 레포 `declaw` 생성
-5. [ ] Day 1 시작: 스켈레톤 + CI
+### 1. 설치 (30초)
+
+```bash
+git clone https://github.com/intelli-bruce/declaw.git
+ln -sf "$(pwd)/declaw/skill" ~/.claude/skills/declaw
+```
+
+### 2. 사용 (새 Claude Code 세션에서)
+
+```
+> declaw scan              # 미리보기 — 파일 변경 없음
+> declaw apply             # 실제 마이그레이션 실행
+> declaw rollback          # 마지막 마이그레이션 되돌리기
+> verify against docs      # 공식 문서 대조 확인
+```
+
+또는 자연어:
+```
+> OpenClaw 스캔해봐
+> 실제로 옮겨줘
+> 되돌려줘
+```
+
+### 3. 확인
+
+```bash
+ls ~/.claude/CLAUDE.md           # Identity/User/Soul 섹션 추가 확인
+ls ~/.claude/rules/              # tools.md 확인
+ls ~/.claude/hooks/              # heartbeat hook 확인
+claude mcp list                  # 마이그레이션된 MCP 서버 확인
+ls ~/.claude/skills/             # 마이그레이션된 Skills 확인
+```
 
 ## 🙋 FAQ (예상)
 
